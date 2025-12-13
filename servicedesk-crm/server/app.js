@@ -6,6 +6,7 @@ import { createServer } from "http";
 import { Server } from "socket.io";
 import dotenv from "dotenv";
 
+// Load environment variables
 dotenv.config();
 
 // Import routes
@@ -16,23 +17,41 @@ import ticketRoutes from "./routes/TicketRoutes.js";
 const app = express();
 const httpServer = createServer(app);
 
+// Allowed origins for CORS (development + production)
+const allowedOrigins = [
+  "http://localhost:5173",
+  "http://localhost:5174",
+  "http://localhost:3000",
+  "https://servicedesk-crm.vercel.app", // Your Vercel URL (update if different)
+  process.env.FRONTEND_URL, // Set this in Render environment variables
+].filter(Boolean); // Remove any undefined/null values
+
 // Socket.IO setup with proper CORS
-// Update Socket.IO CORS
 const io = new Server(httpServer, {
   cors: {
-    origin: [
-      "http://localhost:5173",
-      "https://servicedesk-crm.vercel.app",
-      process.env.FRONTEND_URL
-    ],
+    origin: allowedOrigins,
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
-    credentials: true
-  }
+    credentials: true,
+    allowedHeaders: ["Content-Type", "Authorization"]
+  },
+  transports: ["polling", "websocket"],
+  pingTimeout: 60000,
+  pingInterval: 25000
 });
 
-// CORS middleware for Express routes
+// CORS middleware for Express routes (single configuration)
 app.use(cors({
-  origin: ["http://localhost:5173", "http://localhost:5174", "http://localhost:3000"],
+  origin: function(origin, callback) {
+    // Allow requests with no origin (mobile apps, Postman, curl, etc.)
+    if (!origin) return callback(null, true);
+    
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      console.warn(`⚠️ CORS blocked request from origin: ${origin}`);
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true,
   methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"]
@@ -42,22 +61,27 @@ app.use(cors({
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// MongoDB connection - FIXED: Use 127.0.0.1 instead of localhost to force IPv4
-const MONGO_URI = process.env.MONGO_URI ;
+// MongoDB connection
+const MONGO_URI = process.env.MONGO_URI || "mongodb://127.0.0.1:27017/crm";
 
+console.log("🔍 Attempting to connect to MongoDB...");
+console.log("📊 MongoDB URI:", MONGO_URI.replace(/\/\/([^:]+):([^@]+)@/, '//$1:****@')); // Hide password in logs
 
-// Connect without deprecated options
 mongoose.connect(MONGO_URI)
-  .then(() => console.log("✅ MongoDB connected successfully"))
+  .then(() => {
+    console.log("✅ MongoDB connected successfully");
+  })
   .catch((err) => {
     console.error("❌ MongoDB connection error:", err.message);
-    console.error("Make sure MongoDB service is running!");
-    console.error("Run: net start MongoDB (as Administrator)");
+    console.error("Make sure MongoDB is accessible!");
+    if (process.env.NODE_ENV === 'production') {
+      console.error("Check your MONGO_URI environment variable in Render");
+    }
   });
 
 // MongoDB connection event listeners
 mongoose.connection.on('error', err => {
-  console.error('MongoDB connection error:', err.message);
+  console.error('❌ MongoDB connection error:', err.message);
 });
 
 mongoose.connection.on('disconnected', () => {
@@ -100,21 +124,13 @@ io.on("connection", (socket) => {
 // Make io accessible to routes
 app.set("io", io);
 
-// Log all requests in development
-app.use((req, res, next) => {
-  console.log(`${req.method} ${req.path}`);
-  next();
-});
-// Update CORS for production
-app.use(cors({
-  origin: [
-    "http://localhost:5173",
-    "https://servicedesk-crm.vercel.app", // Your Vercel frontend URL
-    process.env.FRONTEND_URL
-  ],
-  credentials: true
-}));
-
+// Request logging (only in development)
+if (process.env.NODE_ENV !== 'production') {
+  app.use((req, res, next) => {
+    console.log(`${req.method} ${req.path}`);
+    next();
+  });
+}
 
 // Health check route
 app.get("/", (req, res) => {
@@ -122,6 +138,7 @@ app.get("/", (req, res) => {
     message: "ServiceDesk CRM API is running",
     socketIO: "enabled",
     database: mongoose.connection.readyState === 1 ? "connected" : "disconnected",
+    environment: process.env.NODE_ENV || "development",
     timestamp: new Date().toISOString()
   });
 });
@@ -159,8 +176,9 @@ httpServer.listen(PORT, () => {
   console.log("\n" + "=".repeat(50));
   console.log(`🚀 Server running on http://localhost:${PORT}`);
   console.log(`🔌 Socket.IO ready for real-time connections`);
-  console.log(`📊 MongoDB: ${MONGO_URI}`);
-  console.log(`🌐 CORS enabled for: http://localhost:5173`);
+  console.log(`🌐 Environment: ${process.env.NODE_ENV || "development"}`);
+  console.log(`🌍 CORS enabled for: ${allowedOrigins.join(", ")}`);
+  console.log(`📊 Database: ${mongoose.connection.readyState === 1 ? "✅ Connected" : "⚠️ Not connected"}`);
   console.log("=".repeat(50) + "\n");
   console.log("✅ Server is ready to accept connections!\n");
 });
@@ -184,10 +202,15 @@ const gracefulShutdown = (signal) => {
   httpServer.close(() => {
     console.log("✅ HTTP server closed");
 
-    mongoose.connection.close(false, () => {
-      console.log("✅ MongoDB connection closed");
-      process.exit(0);
-    });
+    mongoose.connection.close()
+      .then(() => {
+        console.log("✅ MongoDB connection closed");
+        process.exit(0);
+      })
+      .catch((err) => {
+        console.error("Error closing MongoDB:", err);
+        process.exit(1);
+      });
   });
 
   // Force shutdown after 10 seconds
