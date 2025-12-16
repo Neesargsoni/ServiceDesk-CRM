@@ -34,4 +34,5 @@ function Login() {
     }
   };
 }
-  // JSX stays SAME
+export default Login;
+// JSX stays SAME

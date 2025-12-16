@@ -37,3 +37,4 @@ const Register = () => {
 
   // JSX stays SAME
 };
+export default Register;
