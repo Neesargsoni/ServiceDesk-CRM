@@ -22,7 +22,9 @@ const allowedOrigins = [
   "http://localhost:5173",
   "http://localhost:5174",
   "http://localhost:3000",
-  "https://servicedesk-crm.vercel.app", // Your Vercel URL (update if different)
+  "https://servicedesk-crm.vercel.app",
+  "https://service-desk-crm-x2ao.vercel.app",
+  // Your Vercel URL (update if different)
   process.env.FRONTEND_URL, // Set this in Render environment variables
 ].filter(Boolean); // Remove any undefined/null values
 
@@ -41,10 +43,10 @@ const io = new Server(httpServer, {
 
 // CORS middleware for Express routes (single configuration)
 app.use(cors({
-  origin: function(origin, callback) {
+  origin: function (origin, callback) {
     // Allow requests with no origin (mobile apps, Postman, curl, etc.)
     if (!origin) return callback(null, true);
-    
+
     if (allowedOrigins.indexOf(origin) !== -1) {
       callback(null, true);
     } else {
