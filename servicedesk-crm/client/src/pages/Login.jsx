@@ -18,7 +18,7 @@ function Login() {
     }
 
     try {
-      const res = await api.post("/api/login", { email, password });
+      const res = await api.post("/login", { email, password }); // ✅ Fixed: removed /api/
 
       if (res.data.token) {
         localStorage.setItem("token", res.data.token);
@@ -62,7 +62,7 @@ function Login() {
         </button>
 
         <p className="mt-4 text-center text-sm">
-          Don’t have an account?{" "}
+          Don't have an account?{" "}
           <Link className="text-blue-600 hover:underline" to="/register">
             Register
           </Link>
