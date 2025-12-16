@@ -18,10 +18,7 @@ function Login() {
     }
 
     try {
-      const res = await api.post("/api/login", {
-        email,
-        password,
-      });
+      const res = await api.post("/api/login", { email, password });
 
       if (res.data.token) {
         localStorage.setItem("token", res.data.token);
@@ -35,30 +32,42 @@ function Login() {
   };
 
   return (
-    <div className="auth-container">
-      <h2>Login</h2>
+    <div className="min-h-screen flex items-center justify-center bg-gray-100">
+      <div className="w-full max-w-md bg-white p-6 rounded-lg shadow">
+        <h2 className="text-2xl font-bold mb-4 text-center">Login</h2>
 
-      {error && <p className="error">{error}</p>}
+        {error && <p className="text-red-500 mb-3 text-center">{error}</p>}
 
-      <input
-        type="email"
-        placeholder="Email"
-        value={email}
-        onChange={(e) => setEmail(e.target.value)}
-      />
+        <input
+          className="w-full mb-3 p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-400"
+          type="email"
+          placeholder="Email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+        />
 
-      <input
-        type="password"
-        placeholder="Password"
-        value={password}
-        onChange={(e) => setPassword(e.target.value)}
-      />
+        <input
+          className="w-full mb-3 p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-400"
+          type="password"
+          placeholder="Password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+        />
 
-      <button onClick={handleLogin}>Login</button>
+        <button
+          className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 transition-colors"
+          onClick={handleLogin}
+        >
+          Login
+        </button>
 
-      <p>
-        Don’t have an account? <Link to="/register">Register</Link>
-      </p>
+        <p className="mt-4 text-center text-sm">
+          Don’t have an account?{" "}
+          <Link className="text-blue-600 hover:underline" to="/register">
+            Register
+          </Link>
+        </p>
+      </div>
     </div>
   );
 }
