@@ -33,6 +33,34 @@ function Login() {
       setError(err.response?.data?.message || "Login failed");
     }
   };
+
+  return (
+    <div className="auth-container">
+      <h2>Login</h2>
+
+      {error && <p className="error">{error}</p>}
+
+      <input
+        type="email"
+        placeholder="Email"
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+      />
+
+      <input
+        type="password"
+        placeholder="Password"
+        value={password}
+        onChange={(e) => setPassword(e.target.value)}
+      />
+
+      <button onClick={handleLogin}>Login</button>
+
+      <p>
+        Don’t have an account? <Link to="/register">Register</Link>
+      </p>
+    </div>
+  );
 }
+
 export default Login;
-// JSX stays SAME
