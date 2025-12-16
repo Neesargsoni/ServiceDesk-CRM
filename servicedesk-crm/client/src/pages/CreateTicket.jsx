@@ -44,3 +44,4 @@ function CreateTicket() {
     }
 }
 // 🔽 JSX stays SAME
+export default CreateTicket;

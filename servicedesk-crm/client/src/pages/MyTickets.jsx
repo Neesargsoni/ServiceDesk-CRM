@@ -30,3 +30,4 @@ function MyTickets() {
 }
 
 // 🔽 rest of your JSX stays 
+export default MyTickets;
