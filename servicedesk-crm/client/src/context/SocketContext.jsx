@@ -1,45 +1,32 @@
-import React, { createContext, useContext, useEffect, useState } from "react";
-import io from "socket.io-client";
+import React, { createContext, useContext, useState } from "react";
+import { io } from "socket.io-client";
 
 const SocketContext = createContext();
 
+let socketInstance = null;
+
 export const SocketProvider = ({ children }) => {
-  const [socket, setSocket] = useState(null);
   const [connected, setConnected] = useState(false);
   const [notifications, setNotifications] = useState([]);
 
-  useEffect(() => {
-    // Connect to Socket.IO server
-    // const socketInstance = io("http://localhost:5001", {
-    //   transports: ["polling"], // Use polling only to avoid WebSocket errors
-    //   reconnection: true,
-    //   reconnectionDelay: 1000,
-    //   reconnectionAttempts: 10,
-    //   timeout: 10000,
-    //   upgrade: false // Prevent upgrade to WebSocket
-    // });  
+  const connectSocket = (user) => {
+    if (socketInstance) return;
 
-    const socketInstance = io(import.meta.env.VITE_API_URL.replace('/api', ''), {
-  transports: ["polling"], // Use polling only to avoid WebSocket errors
+    socketInstance = io(import.meta.env.VITE_SOCKET_URL, {
+      transports: ["polling"], // Render-safe
+      timeout: 20000,
       reconnection: true,
-      reconnectionDelay: 1000,
-      reconnectionAttempts: 10,
-      timeout: 10000,
-      upgrade: false
-});
+      auth: {
+        token: localStorage.getItem("token"),
+      },
+    });
 
-    
-    
     socketInstance.on("connect", () => {
-      console.log("🔌 Socket.IO connected:", socketInstance.id);
+      console.log("🔌 Socket connected:", socketInstance.id);
       setConnected(true);
 
-      // Join user-specific room if logged in
-      const user = JSON.parse(localStorage.getItem("user") || "{}");
-      if (user._id) {
+      if (user?._id) {
         socketInstance.emit("join", user._id);
-        
-        // Join admin room if user is admin/agent
         if (["admin", "agent"].includes(user.role)) {
           socketInstance.emit("joinAdminRoom");
         }
@@ -47,52 +34,46 @@ export const SocketProvider = ({ children }) => {
     });
 
     socketInstance.on("disconnect", () => {
-      console.log("🔌 Socket.IO disconnected");
+      console.log("🔌 Socket disconnected");
       setConnected(false);
     });
 
-    socketInstance.on("connect_error", (error) => {
-      console.error("Socket connection error:", error);
-      setConnected(false);
+    socketInstance.on("connect_error", (err) => {
+      console.warn("⚠️ Socket connection failed:", err.message);
     });
+  };
 
-    setSocket(socketInstance);
-
-    // Cleanup on unmount
-    return () => {
+  const disconnectSocket = () => {
+    if (socketInstance) {
       socketInstance.disconnect();
-    };
-  }, []);
+      socketInstance = null;
+      setConnected(false);
+    }
+  };
 
-  // Add notification helper
+  // Notification helpers
   const addNotification = (notification) => {
-    setNotifications((prev) => [
-      {
-        id: Date.now(),
-        timestamp: new Date(),
-        ...notification,
-      },
-      ...prev,
-    ].slice(0, 50)); // Keep only last 50 notifications
-  };
-
-  const clearNotifications = () => {
-    setNotifications([]);
-  };
-
-  const removeNotification = (id) => {
-    setNotifications((prev) => prev.filter((n) => n.id !== id));
+    setNotifications((prev) =>
+      [
+        {
+          id: Date.now(),
+          timestamp: new Date(),
+          ...notification,
+        },
+        ...prev,
+      ].slice(0, 50)
+    );
   };
 
   return (
     <SocketContext.Provider
       value={{
-        socket,
+        socket: socketInstance,
         connected,
+        connectSocket,
+        disconnectSocket,
         notifications,
         addNotification,
-        clearNotifications,
-        removeNotification,
       }}
     >
       {children}
@@ -100,10 +81,4 @@ export const SocketProvider = ({ children }) => {
   );
 };
 
-export const useSocket = () => {
-  const context = useContext(SocketContext);
-  if (!context) {
-    throw new Error("useSocket must be used within a SocketProvider");
-  }
-  return context;
-};
+export const useSocket = () => useContext(SocketContext);

@@ -1,9 +1,11 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import api from "../api/axios";
+import { useSocket } from "../context/SocketContext";
 
 function Login() {
   const navigate = useNavigate();
+  const { connectSocket } = useSocket();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -18,12 +20,13 @@ function Login() {
     }
 
     try {
-      const res = await api.post("/login", { email, password }); // ✅ Fixed: removed /api/
+      const res = await api.post("/login", { email, password });
 
-      if (res.data.token) {
-        localStorage.setItem("token", res.data.token);
-      }
+      localStorage.setItem("token", res.data.token);
       localStorage.setItem("user", JSON.stringify(res.data.user));
+
+      // 🔌 Socket connects only now
+      connectSocket(res.data.user);
 
       navigate("/dashboard");
     } catch (err) {
@@ -62,7 +65,7 @@ function Login() {
         </button>
 
         <p className="mt-4 text-center text-sm">
-          Don't have an account?{" "}
+          Don&apos;t have an account?{" "}
           <Link className="text-blue-600 hover:underline" to="/register">
             Register
           </Link>
