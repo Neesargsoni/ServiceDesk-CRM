@@ -21,7 +21,7 @@ function MyTickets() {
 
     async function loadTickets() {
         try {
-            const res = await api.get("/tickets/my");
+            const res = await api.get("/api/tickets/my");
             setTickets(res.data);
         } catch (err) {
             console.error("Error loading tickets:", err);
