@@ -1,3 +1,4 @@
+// client/src/pages/MyTickets.jsx - AI ENHANCED VERSION
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
@@ -59,14 +60,39 @@ function MyTickets() {
         }
     };
 
-    // ✅ ADD THIS RETURN STATEMENT:
+    // 🤖 AI-RELATED HELPER FUNCTIONS
+    const getSentimentEmoji = (sentiment) => {
+        switch(sentiment) {
+            case "Positive": return "😊";
+            case "Negative": return "😠";
+            case "Urgent": return "🔥";
+            default: return "😐";
+        }
+    };
+
+    const getCategoryColor = (category) => {
+        switch(category) {
+            case "Technical Issue": return "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200";
+            case "Billing Question": return "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200";
+            case "Feature Request": return "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200";
+            case "Bug Report": return "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200";
+            case "Account Issue": return "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200";
+            default: return "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200";
+        }
+    };
+
     return (
         <div className="flex min-h-screen bg-gray-100 dark:bg-gray-950 transition-colors duration-300">
             <Sidebar user={user} />
 
             <main className="flex-1 p-8">
                 <div className="flex justify-between items-center mb-6">
-                    <h1 className="text-3xl font-bold dark:text-white">My Tickets</h1>
+                    <div>
+                        <h1 className="text-3xl font-bold dark:text-white">My Tickets</h1>
+                        <p className="text-sm text-gray-500 mt-1">
+                            🤖 AI-powered ticket management
+                        </p>
+                    </div>
                     <p className="text-gray-600 dark:text-gray-400">
                         Hello, <span className="font-semibold text-blue-600 dark:text-blue-400">
                             {user?.name || "User"}
@@ -138,6 +164,26 @@ function MyTickets() {
                                         <p className="text-gray-600 dark:text-gray-300 mb-3 line-clamp-2">
                                             {ticket.description}
                                         </p>
+                                        
+                                        {/* 🤖 AI INSIGHTS ROW */}
+                                        <div className="flex gap-2 flex-wrap mb-2">
+                                            {ticket.aiCategory && (
+                                                <span className={`px-2 py-1 rounded text-xs font-medium ${getCategoryColor(ticket.aiCategory)}`}>
+                                                    🤖 {ticket.aiCategory}
+                                                </span>
+                                            )}
+                                            {ticket.aiSentiment && (
+                                                <span className="px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded text-xs font-medium">
+                                                    {getSentimentEmoji(ticket.aiSentiment)} {ticket.aiSentiment}
+                                                </span>
+                                            )}
+                                            {ticket.aiConfidence && (
+                                                <span className="px-2 py-1 bg-indigo-50 dark:bg-indigo-900 text-indigo-700 dark:text-indigo-200 rounded text-xs font-medium">
+                                                    ✨ {ticket.aiConfidence}% confidence
+                                                </span>
+                                            )}
+                                        </div>
+
                                         {ticket.assignedTo && (
                                             <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">
                                                 ✅ Assigned to: <strong>{ticket.assignedTo.name}</strong>

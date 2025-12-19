@@ -5,7 +5,7 @@ import {
   analyzeSentiment, 
   suggestPriority, 
   calculateConfidence 
-} from "../utils/Aiclassifier.js";
+} from "../utils/aiClassifier.js";
 
 // Replace your existing POST /create route with this:
 

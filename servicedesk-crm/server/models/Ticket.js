@@ -50,6 +50,40 @@ const ticketSchema = new mongoose.Schema({
   },
   comments: [commentSchema],
   activity: [activitySchema],
+  
+  // 🤖 AI-POWERED FIELDS (NEW)
+  aiCategory: {
+    type: String,
+    enum: [
+      "Technical Issue",
+      "Billing Question",
+      "Feature Request",
+      "General Inquiry",
+      "Bug Report",
+      "Account Issue",
+    ],
+  },
+  aiSentiment: {
+    type: String,
+    enum: ["Positive", "Neutral", "Negative", "Urgent"],
+  },
+  aiConfidence: {
+    type: Number,
+    min: 0,
+    max: 100,
+  },
+  aiSuggestedPriority: {
+    type: String,
+    enum: ["Low", "Medium", "High", "Urgent"],
+  },
+  aiProcessed: {
+    type: Boolean,
+    default: false,
+  },
+  aiProcessedAt: {
+    type: Date,
+  },
+  
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now }
 });
@@ -59,5 +93,11 @@ ticketSchema.pre('save', function (next) {
   this.updatedAt = Date.now();
   next();
 });
+
+// Index for better query performance
+ticketSchema.index({ user: 1, status: 1 });
+ticketSchema.index({ assignedTo: 1 });
+ticketSchema.index({ aiCategory: 1 });
+ticketSchema.index({ aiSentiment: 1 });
 
 export default mongoose.model("Ticket", ticketSchema);
