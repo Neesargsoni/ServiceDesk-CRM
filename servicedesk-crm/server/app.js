@@ -1,4 +1,4 @@
-// App.js - Main server file
+// App.js - Main server file - CORS FIXED
 import express from "express";
 import mongoose from "mongoose";
 import cors from "cors";
@@ -24,14 +24,17 @@ const allowedOrigins = [
   "http://localhost:3000",
   "https://servicedesk-crm.vercel.app",
   "https://service-desk-crm-x2ao.vercel.app",
-  "https://service-desk-crm.vercel.app",  // ✅ ADDED: Your actual domain from the error
+  "https://service-desk-crm.vercel.app",
   process.env.FRONTEND_URL,
 ].filter(Boolean);
+
+// Remove duplicates
+const uniqueOrigins = [...new Set(allowedOrigins)];
 
 // Socket.IO setup with proper CORS
 const io = new Server(httpServer, {
   cors: {
-    origin: allowedOrigins,
+    origin: uniqueOrigins,
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
     credentials: true,
     allowedHeaders: ["Content-Type", "Authorization"]
@@ -41,16 +44,22 @@ const io = new Server(httpServer, {
   pingInterval: 25000
 });
 
-// CORS middleware for Express routes (single configuration)
+// ✅ FIXED CORS middleware with better origin checking
 app.use(cors({
   origin: function (origin, callback) {
     // Allow requests with no origin (mobile apps, Postman, curl, etc.)
-    if (!origin) return callback(null, true);
+    if (!origin) {
+      console.log("✅ CORS: Allowing request with no origin");
+      return callback(null, true);
+    }
 
-    if (allowedOrigins.indexOf(origin) !== -1) {
+    // Check if origin is in allowed list
+    if (uniqueOrigins.includes(origin)) {
+      console.log(`✅ CORS: Allowing origin: ${origin}`);
       callback(null, true);
     } else {
-      console.warn(`⚠️ CORS blocked request from origin: ${origin}`);
+      console.warn(`⚠️ CORS: Blocked request from origin: ${origin}`);
+      console.warn(`   Allowed origins: ${uniqueOrigins.join(", ")}`);
       callback(new Error('Not allowed by CORS'));
     }
   },
@@ -67,7 +76,7 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 const MONGO_URI = process.env.MONGO_URI || "mongodb://127.0.0.1:27017/crm";
 
 console.log("🔍 Attempting to connect to MongoDB...");
-console.log("📊 MongoDB URI:", MONGO_URI.replace(/\/\/([^:]+):([^@]+)@/, '//$1:****@')); // Hide password in logs
+console.log("📊 MongoDB URI:", MONGO_URI.replace(/\/\/([^:]+):([^@]+)@/, '//$1:****@'));
 
 mongoose.connect(MONGO_URI)
   .then(() => {
@@ -98,7 +107,6 @@ mongoose.connection.on('reconnected', () => {
 io.on("connection", (socket) => {
   console.log("🔌 New client connected:", socket.id);
 
-  // Join user-specific room
   socket.on("join", (userId) => {
     if (userId) {
       socket.join(`user_${userId}`);
@@ -106,18 +114,15 @@ io.on("connection", (socket) => {
     }
   });
 
-  // Join admin/agent room
   socket.on("joinAdminRoom", () => {
     socket.join("admins");
     console.log(`👔 User ${socket.id} joined admin room`);
   });
 
-  // Handle disconnection
   socket.on("disconnect", (reason) => {
     console.log(`🔌 Client disconnected: ${socket.id} (Reason: ${reason})`);
   });
 
-  // Handle connection errors
   socket.on("error", (error) => {
     console.error("Socket error:", error);
   });
@@ -179,7 +184,7 @@ httpServer.listen(PORT, () => {
   console.log(`🚀 Server running on http://localhost:${PORT}`);
   console.log(`🔌 Socket.IO ready for real-time connections`);
   console.log(`🌐 Environment: ${process.env.NODE_ENV || "development"}`);
-  console.log(`🌍 CORS enabled for: ${allowedOrigins.join(", ")}`);
+  console.log(`🌍 CORS enabled for: ${uniqueOrigins.join(", ")}`);
   console.log(`📊 Database: ${mongoose.connection.readyState === 1 ? "✅ Connected" : "⚠️ Not connected"}`);
   console.log("=".repeat(50) + "\n");
   console.log("✅ Server is ready to accept connections!\n");
@@ -215,7 +220,6 @@ const gracefulShutdown = (signal) => {
       });
   });
 
-  // Force shutdown after 10 seconds
   setTimeout(() => {
     console.error("❌ Forced shutdown after timeout");
     process.exit(1);
@@ -225,5 +229,4 @@ const gracefulShutdown = (signal) => {
 process.on("SIGTERM", () => gracefulShutdown("SIGTERM"));
 process.on("SIGINT", () => gracefulShutdown("SIGINT"));
 
-// Export io for use in routes
 export { io };
