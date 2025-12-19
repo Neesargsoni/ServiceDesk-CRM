@@ -25,7 +25,7 @@ const Register = () => {
     setLoading(true);
 
     try {
-      const res = await api.post("/customers", form);
+      const res = await api.post("/api/customers", form);
 
       setMessage(`✅ "${res.data.name}" registered successfully! Redirecting...`);
       setShowMessage(true);
