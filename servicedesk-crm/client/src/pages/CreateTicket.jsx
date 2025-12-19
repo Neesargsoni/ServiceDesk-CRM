@@ -23,27 +23,31 @@ function CreateTicket() {
         e.preventDefault();
 
         try {
-            await api.post("/tickets/create", {
+            // ✅ FIXED: Added /api prefix
+            const response = await api.post("/api/tickets/create", {
                 title,
                 description,
                 priority,
             });
+
+            console.log("✅ Ticket created with AI insights:", response.data);
 
             setMessage("Ticket created successfully!");
             setTitle("");
             setDescription("");
             setPriority("Low");
 
-            const statsRes = await api.get("/tickets/stats");
+            // ✅ FIXED: Added /api prefix
+            const statsRes = await api.get("/api/tickets/stats");
             updateStats(statsRes.data);
 
             setTimeout(() => navigate("/my-tickets"), 1000);
         } catch (err) {
-            setMessage(err.response?.data?.message || "Something went wrong");
+            console.error("Error creating ticket:", err);
+            setMessage(err.response?.data?.error || "Something went wrong");
         }
     }
 
-    // ✅ ADD THIS RETURN STATEMENT:
     return (
         <div className="flex min-h-screen bg-gray-100 dark:bg-gray-950 transition-colors duration-300">
             <Sidebar user={user} />
