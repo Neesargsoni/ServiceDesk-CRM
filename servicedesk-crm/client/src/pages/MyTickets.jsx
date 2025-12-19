@@ -1,4 +1,3 @@
-// client/src/pages/MyTickets.jsx - AI ENHANCED VERSION
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
