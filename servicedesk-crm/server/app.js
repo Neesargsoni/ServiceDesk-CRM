@@ -24,9 +24,9 @@ const allowedOrigins = [
   "http://localhost:3000",
   "https://servicedesk-crm.vercel.app",
   "https://service-desk-crm-x2ao.vercel.app",
-  // Your Vercel URL (update if different)
-  process.env.FRONTEND_URL, // Set this in Render environment variables
-].filter(Boolean); // Remove any undefined/null values
+  "https://service-desk-crm.vercel.app",  // ✅ ADDED: Your actual domain from the error
+  process.env.FRONTEND_URL,
+].filter(Boolean);
 
 // Socket.IO setup with proper CORS
 const io = new Server(httpServer, {
