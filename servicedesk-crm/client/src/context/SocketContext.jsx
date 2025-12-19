@@ -1,69 +1,84 @@
-import { createContext, useContext, useEffect, useState } from "react";
+import React, { createContext, useContext, useState } from "react";
 import { io } from "socket.io-client";
 
 const SocketContext = createContext();
 
-export const useSocket = () => {
-  const context = useContext(SocketContext);
-  if (!context) {
-    throw new Error("useSocket must be used within SocketProvider");
-  }
-  return context;
-};
+let socketInstance = null;
 
 export const SocketProvider = ({ children }) => {
-  const [socket, setSocket] = useState(null);
   const [connected, setConnected] = useState(false);
+  const [notifications, setNotifications] = useState([]);
 
-  useEffect(() => {
-    // ✅ Use environment variable for Socket.IO connection
-    const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || import.meta.env.VITE_API_URL || "http://localhost:5000";
-    
-    console.log("🔌 Connecting to Socket.IO server:", SOCKET_URL);
+  const connectSocket = (user) => {
+    if (socketInstance) return;
 
-    const socketInstance = io(SOCKET_URL, {
-      transports: ["websocket", "polling"], // Try WebSocket first, fallback to polling
-      withCredentials: true,
+    socketInstance = io(import.meta.env.VITE_SOCKET_URL, {
+      transports: ["polling"], // Render-safe
+      timeout: 20000,
       reconnection: true,
-      reconnectionDelay: 1000,
-      reconnectionAttempts: 5,
+      auth: {
+        token: localStorage.getItem("token"),
+      },
     });
 
     socketInstance.on("connect", () => {
-      console.log("✅ Socket connected:", socketInstance.id);
+      console.log("🔌 Socket connected:", socketInstance.id);
       setConnected(true);
-      
-      // Join user-specific room if authenticated
-      const token = localStorage.getItem("token");
-      const user = JSON.parse(localStorage.getItem("user") || "{}");
-      
-      if (token && user.id) {
-        socketInstance.emit("join_user_room", user.id);
-        console.log("👤 Joined user room:", user.id);
+
+      if (user?._id) {
+        socketInstance.emit("join", user._id);
+        if (["admin", "agent"].includes(user.role)) {
+          socketInstance.emit("joinAdminRoom");
+        }
       }
     });
 
-    socketInstance.on("disconnect", (reason) => {
-      console.log("❌ Socket disconnected:", reason);
+    socketInstance.on("disconnect", () => {
+      console.log("🔌 Socket disconnected");
       setConnected(false);
     });
 
-    socketInstance.on("connect_error", (error) => {
-      console.error("🔴 Socket connection error:", error.message);
-      setConnected(false);
+    socketInstance.on("connect_error", (err) => {
+      console.warn("⚠️ Socket connection failed:", err.message);
     });
+  };
 
-    setSocket(socketInstance);
-
-    return () => {
-      console.log("🔌 Disconnecting socket");
+  const disconnectSocket = () => {
+    if (socketInstance) {
       socketInstance.disconnect();
-    };
-  }, []);
+      socketInstance = null;
+      setConnected(false);
+    }
+  };
+
+  // Notification helpers
+  const addNotification = (notification) => {
+    setNotifications((prev) =>
+      [
+        {
+          id: Date.now(),
+          timestamp: new Date(),
+          ...notification,
+        },
+        ...prev,
+      ].slice(0, 50)
+    );
+  };
 
   return (
-    <SocketContext.Provider value={{ socket, connected }}>
+    <SocketContext.Provider
+      value={{
+        socket: socketInstance,
+        connected,
+        connectSocket,
+        disconnectSocket,
+        notifications,
+        addNotification,
+      }}
+    >
       {children}
     </SocketContext.Provider>
   );
 };
+
+export const useSocket = () => useContext(SocketContext);

@@ -389,10 +389,8 @@ router.delete("/:id", authMiddleware, async (req, res) => {
 
 /**
  * GET /api/tickets/agents/list
- * ✅ CHANGED: Using authMiddleware instead of agentOrAdmin
- * This allows regular users to see the agents list (needed for UI)
  */
-router.get("/agents/list", authMiddleware, async (req, res) => {
+router.get("/agents/list", agentOrAdmin, async (req, res) => {
   try {
     const agents = await Customer.find({ 
       role: { $in: ["agent", "admin"] } 
