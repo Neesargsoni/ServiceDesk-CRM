@@ -20,7 +20,8 @@ function Analytics() {
     const fetchAllTickets = async () => {
         try {
             const token = localStorage.getItem("token");
-            const res = await fetch(`${API_URL}/tickets/all`, {
+            // ✅ FIXED: Added /api prefix
+            const res = await fetch(`${API_URL}/api/tickets/all`, {
                 headers: { Authorization: `Bearer ${token}` },
             });
 
