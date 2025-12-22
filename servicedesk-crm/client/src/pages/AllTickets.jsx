@@ -1,14 +1,13 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
+import api from "../api/axios";  // ✅ ADD THIS
 
 function AllTickets() {
     const [tickets, setTickets] = useState([]);
     const [user, setUser] = useState(null);
     const [filter, setFilter] = useState("all");
     const [searchTerm, setSearchTerm] = useState("");
-    
-    const API_URL = import.meta.env.VITE_API_URL;
 
     useEffect(() => {
         const storedUser = localStorage.getItem("user");
@@ -18,19 +17,14 @@ function AllTickets() {
 
     const fetchTickets = async () => {
         try {
-            const token = localStorage.getItem("token");
-            const res = await fetch(`${API_URL}/tickets/all`, {
-                headers: { Authorization: `Bearer ${token}` },
-            });
-
-            if (res.ok) {
-                const data = await res.json();
-                setTickets(data);
-            } else {
-                alert("Access denied. Admin or Agent role required.");
-            }
+            // ✅ FIXED: Using api helper with /api prefix
+            const res = await api.get("/api/tickets/all");
+            setTickets(res.data);
         } catch (err) {
             console.error("Error fetching tickets:", err);
+            if (err.response?.status === 403) {
+                alert("Access denied. Admin or Agent role required.");
+            }
         }
     };
 
@@ -38,9 +32,9 @@ function AllTickets() {
     const filteredTickets = tickets.filter(ticket => {
         // Search filter
         const matchesSearch = 
-            ticket.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            ticket.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            ticket.user?.name.toLowerCase().includes(searchTerm.toLowerCase());
+            ticket.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            ticket.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            ticket.user?.name?.toLowerCase().includes(searchTerm.toLowerCase());
 
         // Status filter
         if (filter === "all") return matchesSearch;
@@ -72,13 +66,39 @@ function AllTickets() {
         }
     };
 
+    // 🤖 AI-RELATED HELPER FUNCTIONS
+    const getSentimentEmoji = (sentiment) => {
+        switch(sentiment) {
+            case "Positive": return "😊";
+            case "Negative": return "😠";
+            case "Urgent": return "🔥";
+            default: return "😐";
+        }
+    };
+
+    const getCategoryColor = (category) => {
+        switch(category) {
+            case "Technical Issue": return "bg-blue-100 text-blue-800";
+            case "Billing Question": return "bg-green-100 text-green-800";
+            case "Feature Request": return "bg-purple-100 text-purple-800";
+            case "Bug Report": return "bg-red-100 text-red-800";
+            case "Account Issue": return "bg-orange-100 text-orange-800";
+            default: return "bg-gray-100 text-gray-800";
+        }
+    };
+
     return (
         <div className="flex min-h-screen bg-gray-100">
             <Sidebar user={user} />
 
             <main className="flex-1 p-8">
                 <div className="flex justify-between items-center mb-6">
-                    <h1 className="text-3xl font-bold">All Tickets</h1>
+                    <div>
+                        <h1 className="text-3xl font-bold">All Tickets</h1>
+                        <p className="text-sm text-gray-500 mt-1">
+                            🤖 AI-powered ticket management
+                        </p>
+                    </div>
                     <p className="text-gray-600">
                         Total: <span className="font-bold text-blue-600">{filteredTickets.length}</span>
                     </p>
@@ -130,6 +150,26 @@ function AllTickets() {
                                         <p className="text-gray-600 text-sm mb-2 line-clamp-2">
                                             {ticket.description}
                                         </p>
+                                        
+                                        {/* 🤖 AI INSIGHTS ROW */}
+                                        <div className="flex gap-2 flex-wrap mb-2">
+                                            {ticket.aiCategory && (
+                                                <span className={`px-2 py-1 rounded text-xs font-medium ${getCategoryColor(ticket.aiCategory)}`}>
+                                                    🤖 {ticket.aiCategory}
+                                                </span>
+                                            )}
+                                            {ticket.aiSentiment && (
+                                                <span className="px-2 py-1 bg-gray-100 rounded text-xs font-medium">
+                                                    {getSentimentEmoji(ticket.aiSentiment)} {ticket.aiSentiment}
+                                                </span>
+                                            )}
+                                            {ticket.aiConfidence && (
+                                                <span className="px-2 py-1 bg-indigo-50 text-indigo-700 rounded text-xs font-medium">
+                                                    ✨ {ticket.aiConfidence}% confidence
+                                                </span>
+                                            )}
+                                        </div>
+
                                         <div className="flex gap-2 items-center text-sm text-gray-500">
                                             <span>👤 {ticket.user?.name || "Unknown"}</span>
                                             {ticket.assignedTo && (
