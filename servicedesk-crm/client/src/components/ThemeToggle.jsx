@@ -6,24 +6,27 @@ export default function ThemeToggle() {
   return (
     <button
       onClick={toggleTheme}
-      className="fixed bottom-6 right-6 w-14 h-14 rounded-full shadow-lg flex items-center justify-center 
-                 bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700
-                 hover:scale-110 transition-all duration-300 z-50"
+      className="fixed bottom-4 right-4 lg:bottom-6 lg:right-6 
+                 w-12 h-12 lg:w-14 lg:h-14 
+                 rounded-full shadow-lg flex items-center justify-center 
+                 bg-white dark:bg-gray-800 
+                 border-2 border-gray-200 dark:border-gray-700
+                 hover:scale-110 active:scale-95
+                 transition-all duration-300 z-40"
       title={theme === "light" ? "Switch to Dark Mode" : "Switch to Light Mode"}
+      aria-label={theme === "light" ? "Switch to Dark Mode" : "Switch to Light Mode"}
     >
       {theme === "light" ? (
-        // Moon icon for dark mode
         <svg
-          className="w-6 h-6 text-gray-700"
+          className="w-5 h-5 lg:w-6 lg:h-6 text-gray-700"
           fill="currentColor"
           viewBox="0 0 20 20"
         >
           <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z" />
         </svg>
       ) : (
-        // Sun icon for light mode
         <svg
-          className="w-6 h-6 text-yellow-400"
+          className="w-5 h-5 lg:w-6 lg:h-6 text-yellow-400"
           fill="currentColor"
           viewBox="0 0 20 20"
         >
