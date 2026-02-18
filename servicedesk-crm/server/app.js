@@ -5,6 +5,8 @@ import cors from "cors";
 import { createServer } from "http";
 import { Server } from "socket.io";
 import dotenv from "dotenv";
+import session from "express-session";
+import passport from "./config/passport.js";
 
 // Load environment variables
 dotenv.config();
@@ -14,8 +16,39 @@ import authRoutes from "./routes/AuthRoutes.js";
 import customerRoutes from "./routes/CustomerRoutes.js";
 import ticketRoutes from "./routes/TicketRoutes.js";
 
+// 🛡️ Security Imports
+import helmet from "helmet";
+import rateLimit from "express-rate-limit";
+import mongoSanitize from "express-mongo-sanitize";
+import xss from "xss-clean";
+import hpp from "hpp";
+
 const app = express();
 const httpServer = createServer(app);
+
+// 🛡️ Security Middleware
+
+// 1. Set Security HTTP Headers
+app.use(helmet());
+
+// 2. Limit requests from same API (DDoS Protection)
+const limiter = rateLimit({
+  max: 100, // Limit each IP to 100 requests per windowMs
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  message: "Too many requests from this IP, please try again in an hour!",
+  standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
+  legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+});
+app.use("/api", limiter);
+
+// 3. Data Sanitization against NoSQL query injection
+app.use(mongoSanitize());
+
+// 4. Data Sanitization against XSS
+app.use(xss());
+
+// 5. Prevent Parameter Pollution
+app.use(hpp());
 
 // Allowed origins for CORS (development + production)
 const allowedOrigins = [
@@ -71,6 +104,23 @@ app.use(cors({
 // Body parser middleware
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+// Initialize Session (Required for OAuth state)
+app.use(
+  session({
+    secret: process.env.JWT_SECRET || "supersecretkey",
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+      secure: process.env.NODE_ENV === "production",
+      maxAge: 24 * 60 * 60 * 1000,
+    },
+  })
+);
+
+// Initialize Passport
+app.use(passport.initialize());
+app.use(passport.session());
 
 // MongoDB connection
 const MONGO_URI = process.env.MONGO_URI || "mongodb://127.0.0.1:27017/crm";

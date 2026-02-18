@@ -13,7 +13,10 @@ function TicketDetail() {
     const [selectedAgent, setSelectedAgent] = useState("");
     const [newStatus, setNewStatus] = useState("");
     const [newPriority, setNewPriority] = useState("");
-    
+
+    // 🔒 Internal Note State
+    const [internalNote, setInternalNote] = useState("");
+
     // 🤖 AI STATES
     const [smartReplies, setSmartReplies] = useState([]);
     const [loadingReplies, setLoadingReplies] = useState(false);
@@ -22,7 +25,7 @@ function TicketDetail() {
 
     // 🤖 AI HELPER FUNCTIONS
     const getSentimentEmoji = (sentiment) => {
-        switch(sentiment) {
+        switch (sentiment) {
             case "Positive": return "😊";
             case "Negative": return "😠";
             case "Urgent": return "🔥";
@@ -31,7 +34,7 @@ function TicketDetail() {
     };
 
     const getCategoryIcon = (category) => {
-        switch(category) {
+        switch (category) {
             case "Technical Issue": return "🔧";
             case "Billing Question": return "💳";
             case "Feature Request": return "✨";
@@ -90,7 +93,7 @@ function TicketDetail() {
     // 🤖 Fetch Smart Replies
     const fetchSmartReplies = async () => {
         if (!isAdminOrAgent) return;
-        
+
         setLoadingReplies(true);
         try {
             const token = localStorage.getItem("token");
@@ -98,7 +101,7 @@ function TicketDetail() {
                 method: "POST",
                 headers: { Authorization: `Bearer ${token}` },
             });
-            
+
             if (res.ok) {
                 const data = await res.json();
                 setSmartReplies(data.suggestions.replies || []);
@@ -192,6 +195,35 @@ function TicketDetail() {
         }
     };
 
+    // 🔒 Add Internal Note
+    const handleAddInternalNote = async (e) => {
+        e.preventDefault();
+        if (!internalNote.trim()) return;
+
+        try {
+            const token = localStorage.getItem("token");
+            const res = await fetch(`${API_URL}/api/tickets/${id}/internal-note`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${token}`,
+                },
+                body: JSON.stringify({ text: internalNote }),
+            });
+
+            if (res.ok) {
+                const updated = await res.json();
+                setTicket(updated);
+                setInternalNote("");
+                alert("Internal note added");
+            } else {
+                alert("Failed to add internal note");
+            }
+        } catch (err) {
+            console.error("Error adding internal note:", err);
+        }
+    };
+
     if (loading) return (
         <div className="flex min-h-screen bg-gray-100">
             <Sidebar user={user} />
@@ -200,7 +232,7 @@ function TicketDetail() {
             </div>
         </div>
     );
-    
+
     if (!ticket) return (
         <div className="flex min-h-screen bg-gray-100">
             <Sidebar user={user} />
@@ -240,23 +272,21 @@ function TicketDetail() {
                                 {new Date(ticket.createdAt).toLocaleString()}
                             </p>
                         </div>
-                        
+
                         {/* Badges - Horizontal on mobile, stack on tiny screens */}
                         <div className="flex flex-wrap gap-2 sm:flex-col sm:items-end">
-                            <span className={`px-2.5 sm:px-3 py-1 rounded-full text-xs sm:text-sm font-semibold whitespace-nowrap ${
-                                ticket.priority === "Urgent" ? "bg-red-100 text-red-700" :
+                            <span className={`px-2.5 sm:px-3 py-1 rounded-full text-xs sm:text-sm font-semibold whitespace-nowrap ${ticket.priority === "Urgent" ? "bg-red-100 text-red-700" :
                                 ticket.priority === "High" ? "bg-orange-100 text-orange-700" :
-                                ticket.priority === "Medium" ? "bg-yellow-100 text-yellow-700" :
-                                "bg-green-100 text-green-700"
-                            }`}>
+                                    ticket.priority === "Medium" ? "bg-yellow-100 text-yellow-700" :
+                                        "bg-green-100 text-green-700"
+                                }`}>
                                 {ticket.priority}
                             </span>
-                            <span className={`px-2.5 sm:px-3 py-1 rounded-full text-xs sm:text-sm font-semibold whitespace-nowrap ${
-                                ticket.status === "Open" ? "bg-blue-100 text-blue-700" :
+                            <span className={`px-2.5 sm:px-3 py-1 rounded-full text-xs sm:text-sm font-semibold whitespace-nowrap ${ticket.status === "Open" ? "bg-blue-100 text-blue-700" :
                                 ticket.status === "In Progress" ? "bg-purple-100 text-purple-700" :
-                                ticket.status === "Resolved" ? "bg-green-100 text-green-700" :
-                                "bg-gray-100 text-gray-700"
-                            }`}>
+                                    ticket.status === "Resolved" ? "bg-green-100 text-green-700" :
+                                        "bg-gray-100 text-gray-700"
+                                }`}>
                                 {ticket.status}
                             </span>
                         </div>
@@ -362,7 +392,7 @@ function TicketDetail() {
                                 </span>
                             )}
                         </h3>
-                        
+
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
                             {ticket.aiCategory && (
                                 <div className="bg-white p-3 sm:p-4 rounded-lg shadow-sm">
@@ -375,7 +405,7 @@ function TicketDetail() {
                                     </p>
                                 </div>
                             )}
-                            
+
                             {ticket.aiSentiment && (
                                 <div className="bg-white p-3 sm:p-4 rounded-lg shadow-sm">
                                     <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">
@@ -387,7 +417,7 @@ function TicketDetail() {
                                     </p>
                                 </div>
                             )}
-                            
+
                             {ticket.aiSuggestedPriority && (
                                 <div className="bg-white p-3 sm:p-4 rounded-lg shadow-sm sm:col-span-2 lg:col-span-1">
                                     <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">
@@ -405,7 +435,7 @@ function TicketDetail() {
                                 </div>
                             )}
                         </div>
-                        
+
                         {ticket.aiProcessedAt && (
                             <p className="text-xs text-gray-500 mt-3 text-right">
                                 Analyzed on {new Date(ticket.aiProcessedAt).toLocaleString()}
@@ -425,17 +455,16 @@ function TicketDetail() {
                             <button
                                 onClick={fetchSmartReplies}
                                 disabled={loadingReplies}
-                                className={`w-full sm:w-auto px-4 py-2 rounded-lg font-medium text-sm sm:text-base transition-colors ${
-                                    loadingReplies 
-                                        ? 'bg-gray-300 cursor-not-allowed' 
-                                        : 'bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white'
-                                }`}
+                                className={`w-full sm:w-auto px-4 py-2 rounded-lg font-medium text-sm sm:text-base transition-colors ${loadingReplies
+                                    ? 'bg-gray-300 cursor-not-allowed'
+                                    : 'bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white'
+                                    }`}
                             >
                                 {loadingReplies ? (
                                     <span className="flex items-center justify-center gap-2">
                                         <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
-                                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"/>
-                                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
+                                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                                         </svg>
                                         Generating...
                                     </span>
@@ -448,7 +477,7 @@ function TicketDetail() {
                         {smartReplies.length > 0 ? (
                             <div className="space-y-3">
                                 {smartReplies.map((reply, index) => (
-                                    <div 
+                                    <div
                                         key={index}
                                         className="border border-gray-200 rounded-lg p-3 sm:p-4 hover:border-blue-400 transition-colors cursor-pointer bg-gray-50"
                                         onClick={() => useSmartReply(reply.message)}
@@ -509,6 +538,46 @@ function TicketDetail() {
                         )}
                     </div>
                 </div>
+
+                {/* 🔒 INTERNAL NOTES SECTION (Agents & Admins Only) */}
+                {isAdminOrAgent && (
+                    <div className="bg-yellow-50 border border-yellow-200 shadow-lg rounded-lg p-4 sm:p-6 mb-4 sm:mb-6">
+                        <h2 className="text-lg sm:text-xl font-bold mb-3 sm:mb-4 flex items-center gap-2 text-yellow-800">
+                            🔒 Internal Notes (Private)
+                        </h2>
+
+                        <div className="space-y-3 mb-4">
+                            {ticket.internalNotes && ticket.internalNotes.length > 0 ? (
+                                ticket.internalNotes.map((note, index) => (
+                                    <div key={index} className="bg-white p-3 sm:p-4 rounded border border-yellow-100 shadow-sm">
+                                        <div className="flex justify-between items-start mb-1">
+                                            <span className="font-semibold text-sm text-gray-800">{note.userName}</span>
+                                            <span className="text-xs text-gray-500">{new Date(note.createdAt).toLocaleString()}</span>
+                                        </div>
+                                        <p className="text-sm text-gray-700">{note.text}</p>
+                                    </div>
+                                ))
+                            ) : (
+                                <p className="text-sm text-gray-500 italic">No internal notes yet.</p>
+                            )}
+                        </div>
+
+                        <form onSubmit={handleAddInternalNote}>
+                            <textarea
+                                value={internalNote}
+                                onChange={(e) => setInternalNote(e.target.value)}
+                                placeholder="Add a private note for other agents..."
+                                className="w-full p-2 border border-yellow-300 rounded mb-2 h-20 text-sm focus:ring-2 focus:ring-yellow-400 focus:outline-none"
+                            />
+                            <button
+                                type="submit"
+                                className="bg-yellow-600 text-white px-4 py-2 rounded text-sm font-medium hover:bg-yellow-700 transition shadow-sm"
+                            >
+                                Add Internal Note
+                            </button>
+                        </form>
+                    </div>
+                )}
 
                 {/* Comments Section - Mobile optimized */}
                 <div className="bg-white shadow-lg rounded-lg p-4 sm:p-6">

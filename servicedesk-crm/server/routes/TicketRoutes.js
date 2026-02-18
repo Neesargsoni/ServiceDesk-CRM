@@ -6,12 +6,12 @@ import authMiddleware from "../middleware/authMiddleware.js";
 import { agentOrAdmin, adminOnly } from "../middleware/rbacMiddleware.js";
 
 // 🤖 AI IMPORTS
-import { 
-  classifyTicket, 
-  analyzeSentiment, 
-  suggestPriority, 
+import {
+  classifyTicket,
+  analyzeSentiment,
+  suggestPriority,
   calculateConfidence,
-  generateSmartReplies 
+  generateSmartReplies
 } from "../utils/Aiclassifier.js";
 
 
@@ -24,7 +24,7 @@ const emitTicketUpdate = (req, eventName, data) => {
   if (io) {
     // Broadcast to all connected users
     io.emit(eventName, data);
-    
+
     // Also send to specific user room if applicable
     if (data.ticket && data.ticket.user) {
       io.to(`user_${data.ticket.user}`).emit(eventName, data);
@@ -84,7 +84,7 @@ router.get("/assigned", agentOrAdmin, async (req, res) => {
 router.get("/stats", authMiddleware, async (req, res) => {
   try {
     let query = {};
-    
+
     if (req.user.role === "user") {
       query.user = req.user.id;
     }
@@ -138,7 +138,7 @@ router.get("/:id", authMiddleware, async (req, res) => {
 router.post("/create", authMiddleware, async (req, res) => {
   try {
     const { title, description, priority } = req.body;
-    if (!title || !description) 
+    if (!title || !description)
       return res.status(400).json({ error: "Title and description are required" });
 
     console.log("🎫 Creating ticket with AI analysis...");
@@ -151,7 +151,7 @@ router.post("/create", authMiddleware, async (req, res) => {
 
     // Calculate AI-suggested priority
     const aiSuggestedPriority = suggestPriority(aiSentiment, aiCategory);
-    
+
     // Calculate confidence score
     const aiConfidence = calculateConfidence(aiCategory, aiSentiment);
 
@@ -171,7 +171,7 @@ router.post("/create", authMiddleware, async (req, res) => {
       description,
       priority: finalPriority,
       status: "Open",
-      
+
       // 🤖 AI fields
       aiCategory,
       aiSentiment,
@@ -179,7 +179,7 @@ router.post("/create", authMiddleware, async (req, res) => {
       aiConfidence,
       aiProcessed: true,
       aiProcessedAt: new Date(),
-      
+
       activity: [{
         user: req.user.id,
         userName: req.user.name,
@@ -190,7 +190,7 @@ router.post("/create", authMiddleware, async (req, res) => {
     });
 
     await ticket.save();
-    
+
     // Populate for socket emission
     await ticket.populate("user", "name email role");
 
@@ -206,8 +206,8 @@ router.post("/create", authMiddleware, async (req, res) => {
       }
     });
 
-    res.status(201).json({ 
-      message: "Ticket created successfully", 
+    res.status(201).json({
+      message: "Ticket created successfully",
       ticket,
       aiInsights: {
         category: aiCategory,
@@ -244,7 +244,7 @@ router.put("/:id", authMiddleware, async (req, res) => {
 
     const changes = [];
     const allowedFields = ["title", "description", "priority", "status", "assignedTo"];
-    
+
     allowedFields.forEach((field) => {
       if (req.body[field] !== undefined && req.body[field] !== ticket[field]) {
         changes.push({
@@ -280,7 +280,7 @@ router.put("/:id", authMiddleware, async (req, res) => {
     }
 
     await ticket.save();
-    
+
     const updatedTicket = await Ticket.findById(id)
       .populate("user", "name email role")
       .populate("assignedTo", "name email role");
@@ -449,10 +449,10 @@ router.delete("/:id", authMiddleware, async (req, res) => {
  */
 router.get("/agents/list", authMiddleware, async (req, res) => {
   try {
-    const agents = await Customer.find({ 
-      role: { $in: ["agent", "admin"] } 
+    const agents = await Customer.find({
+      role: { $in: ["agent", "admin"] }
     }).select("name email role");
-    
+
     res.json(agents);
   } catch (err) {
     console.error("GET /api/tickets/agents/list error:", err);
@@ -488,6 +488,65 @@ router.post("/:id/smart-replies", agentOrAdmin, async (req, res) => {
   } catch (err) {
     console.error("POST /api/tickets/:id/smart-replies error:", err);
     res.status(500).json({ error: "Server error generating replies" });
+  }
+});
+
+/**
+ * POST /api/tickets/:id/internal-note
+ * 🔒 Private: Agents & Admins Only
+ * 🔴 EMITS: ticket_internal_note
+ */
+router.post("/:id/internal-note", agentOrAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { text } = req.body;
+
+    if (!text || text.trim() === "") {
+      return res.status(400).json({ error: "Note text is required" });
+    }
+
+    if (!isValidId(id)) return res.status(400).json({ error: "Invalid ticket id" });
+
+    const ticket = await Ticket.findById(id);
+    if (!ticket) return res.status(404).json({ error: "Ticket not found" });
+
+    // Add note to the new field
+    ticket.internalNotes.push({
+      user: req.user.id,
+      userName: req.user.name,
+      userRole: req.user.role,
+      text: text.trim(),
+      createdAt: new Date()
+    });
+
+    // Log this action (but maybe keep details vague if Activity is public)
+    ticket.activity.push({
+      user: req.user.id,
+      userName: req.user.name,
+      action: "internal_note",
+      details: "Added an internal note",
+      timestamp: new Date()
+    });
+
+    await ticket.save();
+
+    const updatedTicket = await Ticket.findById(id)
+      .populate("user", "name email role")
+      .populate("assignedTo", "name email role");
+
+    // 🔴 Special Socket Event - Frontend should listen for this ONLY on Agent Dashboard
+    emitTicketUpdate(req, "ticket_internal_note", {
+      ticketId: id,
+      note: text.trim(),
+      addedBy: req.user.name,
+      ticket: updatedTicket
+    });
+
+    res.json(updatedTicket);
+
+  } catch (err) {
+    console.error("POST /api/tickets/:id/internal-note error:", err);
+    res.status(500).json({ error: "Server error adding internal note" });
   }
 });
 

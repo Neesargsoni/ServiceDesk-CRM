@@ -7,6 +7,8 @@ import crypto from "crypto";
 import Customer from "../models/Customer.js";
 // ✅ USE SENDGRID - No more Gmail App Passwords!
 import sgMail from '@sendgrid/mail';
+import passport from "../config/passport.js";
+import authMiddleware from "../middleware/authMiddleware.js";
 
 // Set SendGrid API Key
 sgMail.setApiKey(process.env.SENDGRID_API_KEY);
@@ -29,8 +31,8 @@ router.post("/login", async (req, res) => {
     }
 
     if (user.oauthProvider && !user.password) {
-      return res.status(400).json({ 
-        message: `This account uses ${user.oauthProvider} login. Please sign in with ${user.oauthProvider}.` 
+      return res.status(400).json({
+        message: `This account uses ${user.oauthProvider} login. Please sign in with ${user.oauthProvider}.`
       });
     }
 
@@ -41,7 +43,12 @@ router.post("/login", async (req, res) => {
     }
 
     const token = jwt.sign(
-      { id: user._id, email: user.email, role: user.role },
+      {
+        id: user._id,
+        email: user.email,
+        role: user.role,
+        name: user.name
+      },
       process.env.JWT_SECRET,
       { expiresIn: "7d" }
     );
@@ -74,14 +81,14 @@ router.post("/forgot-password", async (req, res) => {
     const user = await Customer.findOne({ email: email.toLowerCase() });
 
     if (!user) {
-      return res.status(404).json({ 
-        error: "This email is not registered. Please check and try again." 
+      return res.status(404).json({
+        error: "This email is not registered. Please check and try again."
       });
     }
 
     if (user.oauthProvider && !user.password) {
-      return res.status(400).json({ 
-        error: `This account uses ${user.oauthProvider} login. Please sign in with ${user.oauthProvider}.` 
+      return res.status(400).json({
+        error: `This account uses ${user.oauthProvider} login. Please sign in with ${user.oauthProvider}.`
       });
     }
 
@@ -149,7 +156,7 @@ router.post("/forgot-password", async (req, res) => {
       });
     } catch (err) {
       console.error("Email send error:", err);
-      
+
       user.resetPasswordToken = undefined;
       user.resetPasswordExpire = undefined;
       await user.save();
@@ -170,38 +177,38 @@ router.post("/reset-password", async (req, res) => {
     const { token, newPassword } = req.body;
 
     if (!token || !newPassword) {
-      return res.status(400).json({ 
-        error: "Token and new password are required" 
+      return res.status(400).json({
+        error: "Token and new password are required"
       });
     }
 
     if (newPassword.length < 8) {
-      return res.status(400).json({ 
-        error: "Password must be at least 8 characters" 
+      return res.status(400).json({
+        error: "Password must be at least 8 characters"
       });
     }
 
     if (!/[A-Z]/.test(newPassword)) {
-      return res.status(400).json({ 
-        error: "Password must contain at least one uppercase letter" 
+      return res.status(400).json({
+        error: "Password must contain at least one uppercase letter"
       });
     }
 
     if (!/[a-z]/.test(newPassword)) {
-      return res.status(400).json({ 
-        error: "Password must contain at least one lowercase letter" 
+      return res.status(400).json({
+        error: "Password must contain at least one lowercase letter"
       });
     }
 
     if (!/\d/.test(newPassword)) {
-      return res.status(400).json({ 
-        error: "Password must contain at least one number" 
+      return res.status(400).json({
+        error: "Password must contain at least one number"
       });
     }
 
     if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(newPassword)) {
-      return res.status(400).json({ 
-        error: "Password must contain at least one special character" 
+      return res.status(400).json({
+        error: "Password must contain at least one special character"
       });
     }
 
@@ -273,5 +280,75 @@ async function sendEmail(options) {
   await sgMail.send(msg);
   console.log(`✅ Email sent to ${options.email}`);
 }
+
+// ===== OAUTH ROUTES =====
+
+// Helper to generate token
+const generateToken = (user) => {
+  return jwt.sign(
+    {
+      id: user._id,
+      email: user.email,
+      role: user.role,
+      name: user.name
+    },
+    process.env.JWT_SECRET,
+    { expiresIn: "7d" }
+  );
+};
+
+// Google
+router.get('/auth/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
+router.get('/auth/google/callback',
+  passport.authenticate('google', { session: false, failureRedirect: `${process.env.FRONTEND_URL}/login?error=Google+Login+Failed` }),
+  (req, res) => {
+    const token = generateToken(req.user);
+    res.redirect(`${process.env.FRONTEND_URL}/oauth-success?token=${token}`);
+  }
+);
+
+// Microsoft
+router.get('/auth/microsoft', passport.authenticate('microsoft', { prompt: 'select_account' }));
+router.get('/auth/microsoft/callback',
+  passport.authenticate('microsoft', { session: false, failureRedirect: `${process.env.FRONTEND_URL}/login?error=Microsoft+Login+Failed` }),
+  (req, res) => {
+    const token = generateToken(req.user);
+    res.redirect(`${process.env.FRONTEND_URL}/oauth-success?token=${token}`);
+  }
+);
+
+// Facebook
+router.get('/auth/facebook', passport.authenticate('facebook', { scope: ['email'] }));
+router.get('/auth/facebook/callback',
+  passport.authenticate('facebook', { session: false, failureRedirect: `${process.env.FRONTEND_URL}/login?error=Facebook+Login+Failed` }),
+  (req, res) => {
+    const token = generateToken(req.user);
+    res.redirect(`${process.env.FRONTEND_URL}/oauth-success?token=${token}`);
+  }
+);
+
+// LinkedIn
+router.get('/auth/linkedin', passport.authenticate('linkedin'));
+router.get('/auth/linkedin/callback',
+  passport.authenticate('linkedin', { session: false, failureRedirect: `${process.env.FRONTEND_URL}/login?error=LinkedIn+Login+Failed` }),
+  (req, res) => {
+    const token = generateToken(req.user);
+    res.redirect(`${process.env.FRONTEND_URL}/oauth-success?token=${token}`);
+  }
+);
+
+// Get Current User
+router.get('/me', authMiddleware, async (req, res) => {
+  try {
+    const user = await Customer.findById(req.user.id).select('-password'); // Exclude password
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    res.json(user);
+  } catch (error) {
+    console.error("Get current user error:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+});
 
 export default router;

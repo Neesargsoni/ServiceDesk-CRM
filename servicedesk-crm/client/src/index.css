@@ -3,7 +3,7 @@
 @tailwind utilities;
 
 /* Notification slide-in animation */
-@keyframes slideIn {
+/* @keyframes slideIn {
   from {
     transform: translateX(100%);
     opacity: 0;
@@ -16,10 +16,10 @@
 
 .animate-slideIn {
   animation: slideIn 0.3s ease-out;
-}
+} */
 
 /* Pulse animation for live status indicator */
-@keyframes pulse {
+/* @keyframes pulse {
   0%, 100% {
     opacity: 1;
   }
@@ -30,7 +30,7 @@
 
 .animate-pulse {
   animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-}
+} */
 
 /* Smooth transitions */
 * {

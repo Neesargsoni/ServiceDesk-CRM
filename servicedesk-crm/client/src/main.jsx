@@ -8,6 +8,7 @@ import Login from "./pages/Login";
 import Register from "./pages/Register";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
+import OAuthSuccess from "./pages/OAuthSuccess";
 
 // User Pages
 import Dashboard from "./pages/Dashboard";
@@ -40,95 +41,96 @@ ReactDOM.createRoot(document.getElementById('root')).render(
       <SocketProvider>
         <StatsProvider>
           <BrowserRouter>
-          {/* Real-time notification toasts */}
-          <NotificationToast />
-          
-          <Routes>
-            {/* Public Routes */}
-            <Route path="/" element={<Login />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<Register />} />
-            <Route path="/forgot-password" element={<ForgotPassword />} />
-            <Route path="/reset-password" element={<ResetPassword />} />
+            {/* Real-time notification toasts */}
+            <NotificationToast />
 
-            {/* Protected User Routes */}
-            <Route
-              path="/dashboard"
-              element={
-                <ProtectedRoute>
-                  <Dashboard />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/create-ticket"
-              element={
-                <ProtectedRoute>
-                  <CreateTicket />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/my-tickets"
-              element={
-                <ProtectedRoute>
-                  <MyTickets />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/profile"
-              element={
-                <ProtectedRoute>
-                  <Profile />
-                </ProtectedRoute>
-              }
-            />
+            <Routes>
+              {/* Public Routes */}
+              <Route path="/" element={<Login />} />
+              <Route path="/login" element={<Login />} />
+              <Route path="/register" element={<Register />} />
+              <Route path="/forgot-password" element={<ForgotPassword />} />
+              <Route path="/reset-password" element={<ResetPassword />} />
+              <Route path="/oauth-success" element={<OAuthSuccess />} />
 
-            {/* Ticket Detail Route */}
-            <Route
-              path="/ticket/:id"
-              element={
-                <ProtectedRoute>
-                  <TicketDetail />
-                </ProtectedRoute>
-              }
-            />
+              {/* Protected User Routes */}
+              <Route
+                path="/dashboard"
+                element={
+                  <ProtectedRoute>
+                    <Dashboard />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/create-ticket"
+                element={
+                  <ProtectedRoute>
+                    <CreateTicket />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/my-tickets"
+                element={
+                  <ProtectedRoute>
+                    <MyTickets />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/profile"
+                element={
+                  <ProtectedRoute>
+                    <Profile />
+                  </ProtectedRoute>
+                }
+              />
 
-            {/* Admin/Agent Routes */}
-            <Route
-              path="/all-tickets"
-              element={
-                <ProtectedRoute>
-                  <AllTickets />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/assigned-tickets"
-              element={
-                <ProtectedRoute>
-                  <AssignedTickets />
-                </ProtectedRoute>
-              }
-            />
+              {/* Ticket Detail Route */}
+              <Route
+                path="/ticket/:id"
+                element={
+                  <ProtectedRoute>
+                    <TicketDetail />
+                  </ProtectedRoute>
+                }
+              />
 
-            {/* Analytics Route */}
-            <Route
-              path="/analytics"
-              element={
-                <ProtectedRoute>
-                  <Analytics />
-                </ProtectedRoute>
-              }
-            />
+              {/* Admin/Agent Routes */}
+              <Route
+                path="/all-tickets"
+                element={
+                  <ProtectedRoute>
+                    <AllTickets />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/assigned-tickets"
+                element={
+                  <ProtectedRoute>
+                    <AssignedTickets />
+                  </ProtectedRoute>
+                }
+              />
 
-            {/* Catch-all redirect */}
-            <Route path="*" element={<Navigate to="/dashboard" replace />} />
-          </Routes>
-        </BrowserRouter>
-      </StatsProvider>
-    </SocketProvider>
-  </ThemeProvider>
+              {/* Analytics Route */}
+              <Route
+                path="/analytics"
+                element={
+                  <ProtectedRoute>
+                    <Analytics />
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* Catch-all redirect */}
+              <Route path="*" element={<Navigate to="/dashboard" replace />} />
+            </Routes>
+          </BrowserRouter>
+        </StatsProvider>
+      </SocketProvider>
+    </ThemeProvider>
   </React.StrictMode>
 );

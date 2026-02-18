@@ -49,8 +49,9 @@ const ticketSchema = new mongoose.Schema({
     ref: "Customer"
   },
   comments: [commentSchema],
+  internalNotes: [commentSchema], // 🔒 New Private Field
   activity: [activitySchema],
-  
+
   // 🤖 AI-POWERED FIELDS (NEW)
   aiCategory: {
     type: String,
@@ -83,7 +84,7 @@ const ticketSchema = new mongoose.Schema({
   aiProcessedAt: {
     type: Date,
   },
-  
+
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now }
 });
@@ -95,8 +96,11 @@ ticketSchema.pre('save', function (next) {
 });
 
 // Index for better query performance
-ticketSchema.index({ user: 1, status: 1 });
+ticketSchema.index({ user: 1, status: 1 }); // Compound: Get all open tickets for a user
 ticketSchema.index({ assignedTo: 1 });
+ticketSchema.index({ status: 1 });        // Filter by status (e.g. "Open")
+ticketSchema.index({ priority: 1 });      // Filter by priority (e.g. "Urgent")
+ticketSchema.index({ createdAt: -1 });    // Sort by newest first
 ticketSchema.index({ aiCategory: 1 });
 ticketSchema.index({ aiSentiment: 1 });
 
