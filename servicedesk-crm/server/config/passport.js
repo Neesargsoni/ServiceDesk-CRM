@@ -8,6 +8,9 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
+// Use absolute callback URL to avoid http vs https mismatch on Render/Heroku
+const SERVER_URL = process.env.SERVER_URL || 'http://localhost:5001';
+
 const handleOAuthLogin = async (provider, profile, done) => {
     try {
         const email = profile.emails && profile.emails[0] ? profile.emails[0].value : null;
@@ -87,7 +90,7 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
             {
                 clientID: process.env.GOOGLE_CLIENT_ID,
                 clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-                callbackURL: "/api/auth/google/callback",
+                callbackURL: `${SERVER_URL}/api/auth/google/callback`,
             },
             (accessToken, refreshToken, profile, done) => handleOAuthLogin('google', profile, done)
         )
@@ -103,7 +106,7 @@ if (process.env.MICROSOFT_CLIENT_ID && process.env.MICROSOFT_CLIENT_SECRET) {
             {
                 clientID: process.env.MICROSOFT_CLIENT_ID,
                 clientSecret: process.env.MICROSOFT_CLIENT_SECRET,
-                callbackURL: "/api/auth/microsoft/callback",
+                callbackURL: `${SERVER_URL}/api/auth/microsoft/callback`,
                 scope: ['user.read'],
             },
             (accessToken, refreshToken, profile, done) => handleOAuthLogin('microsoft', profile, done)
@@ -120,7 +123,7 @@ if (process.env.FACEBOOK_APP_ID && process.env.FACEBOOK_APP_SECRET) {
             {
                 clientID: process.env.FACEBOOK_APP_ID,
                 clientSecret: process.env.FACEBOOK_APP_SECRET,
-                callbackURL: "/api/auth/facebook/callback",
+                callbackURL: `${SERVER_URL}/api/auth/facebook/callback`,
                 profileFields: ['id', 'emails', 'name', 'photos'],
             },
             (accessToken, refreshToken, profile, done) => handleOAuthLogin('facebook', profile, done)
@@ -137,7 +140,7 @@ if (process.env.LINKEDIN_KEY && process.env.LINKEDIN_SECRET) {
             {
                 clientID: process.env.LINKEDIN_KEY,
                 clientSecret: process.env.LINKEDIN_SECRET,
-                callbackURL: "/api/auth/linkedin/callback",
+                callbackURL: `${SERVER_URL}/api/auth/linkedin/callback`,
                 scope: ['r_emailaddress', 'r_liteprofile'],
             },
             (accessToken, refreshToken, profile, done) => handleOAuthLogin('linkedin', profile, done)
