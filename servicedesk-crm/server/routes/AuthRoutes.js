@@ -299,13 +299,28 @@ const generateToken = (user) => {
 
 // Google
 router.get('/auth/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
-router.get('/auth/google/callback',
-  passport.authenticate('google', { session: false, failureRedirect: `${process.env.FRONTEND_URL}/login?error=Google+Login+Failed` }),
-  (req, res) => {
-    const token = generateToken(req.user);
-    res.redirect(`${process.env.FRONTEND_URL}/oauth-success?token=${token}`);
-  }
-);
+router.get('/auth/google/callback', (req, res, next) => {
+  passport.authenticate('google', { session: false }, (err, user, info) => {
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+    if (err) {
+      console.error('❌ Google OAuth error:', err.message);
+      return res.redirect(`${frontendUrl}/login?error=${encodeURIComponent(err.message)}`);
+    }
+    if (!user) {
+      console.error('❌ Google OAuth: No user returned', info);
+      return res.redirect(`${frontendUrl}/login?error=Google+Login+Failed`);
+    }
+    try {
+      const token = generateToken(user);
+      console.log(`✅ Google OAuth success for: ${user.email}`);
+      return res.redirect(`${frontendUrl}/oauth-success?token=${token}`);
+    } catch (tokenErr) {
+      console.error('❌ Token generation error:', tokenErr.message);
+      return res.redirect(`${frontendUrl}/login?error=Token+generation+failed`);
+    }
+  })(req, res, next);
+});
+
 
 // Microsoft
 router.get('/auth/microsoft', passport.authenticate('microsoft', { prompt: 'select_account' }));
