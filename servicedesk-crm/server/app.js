@@ -26,6 +26,9 @@ import hpp from "hpp";
 const app = express();
 const httpServer = createServer(app);
 
+// Enable trust proxy for Render/Vercel (fixes rate-limit errors)
+app.set("trust proxy", 1);
+
 // 🛡️ Security Middleware
 
 // 1. Set Security HTTP Headers

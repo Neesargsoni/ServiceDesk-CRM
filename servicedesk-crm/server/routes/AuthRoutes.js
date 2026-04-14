@@ -13,7 +13,7 @@ import authMiddleware from "../middleware/authMiddleware.js";
 if (!process.env.GMAIL_USER) console.error('❌ GMAIL_USER is not set! Forgot-password emails will fail.');
 if (!process.env.GMAIL_APP_PASSWORD) console.error('❌ GMAIL_APP_PASSWORD is not set! Forgot-password emails will fail.');
 
-// Quick startup connection test
+// Quick startup connection test (Version 5 - IPv4 Force)
 if (process.env.GMAIL_USER && process.env.GMAIL_APP_PASSWORD) {
   const testTransporter = nodemailer.createTransport({
     host: 'smtp.gmail.com',
@@ -23,13 +23,14 @@ if (process.env.GMAIL_USER && process.env.GMAIL_APP_PASSWORD) {
       user: process.env.GMAIL_USER,
       pass: process.env.GMAIL_APP_PASSWORD,
     },
+    family: 4, // Force IPv4 (fixes ENETUNREACH on IPv6)
     connectionTimeout: 5000
   });
   testTransporter.verify((error) => {
     if (error) {
-      console.error('❌ Gmail Startup Test Failed:', error.message);
+      console.error('❌ Gmail Startup Test Failed (V5):', error.message);
     } else {
-      console.log('✅ Gmail Startup Test: Server is ready to send emails');
+      console.log('✅ Gmail Startup Test (V5): Server is ready to send emails');
     }
   });
 }
@@ -311,7 +312,7 @@ async function sendEmail(options) {
   const gmailUser = process.env.GMAIL_USER;
   const gmailPass = process.env.GMAIL_APP_PASSWORD;
 
-  console.log(`📧 Attempting to send email via Gmail from: ${gmailUser} to: ${options.email}`);
+  console.log(`📧 Attempting to send email (V5) via Gmail from: ${gmailUser} to: ${options.email}`);
 
   if (!gmailUser || !gmailPass) {
     throw new Error('GMAIL_USER or GMAIL_APP_PASSWORD environment variable is not set.');
@@ -325,6 +326,7 @@ async function sendEmail(options) {
       user: gmailUser,
       pass: gmailPass, // 16-character Gmail App Password
     },
+    family: 4, // Force IPv4 to avoid ENETUNREACH errors on IPv6
     connectionTimeout: 10000, // 10 seconds
     greetingTimeout: 10000,
     socketTimeout: 10000,
@@ -333,9 +335,9 @@ async function sendEmail(options) {
   // Verify connection configuration
   try {
     await transporter.verify();
-    console.log("✅ Gmail Server is ready to take our messages");
+    console.log("✅ Gmail Server is ready (V5)");
   } catch (error) {
-    console.error("❌ Gmail Transporter Verification Failed:", error.message);
+    console.error("❌ Gmail Transporter Verification Failed (V5):", error.message);
     throw error;
   }
 
@@ -346,7 +348,7 @@ async function sendEmail(options) {
     html: options.message,
   });
 
-  console.log(`✅ Email sent successfully to ${options.email}`);
+  console.log(`✅ Email sent successfully (V5) to ${options.email}`);
 }
 
 // ===== OAUTH ROUTES =====
