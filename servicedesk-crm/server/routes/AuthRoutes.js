@@ -13,6 +13,27 @@ import authMiddleware from "../middleware/authMiddleware.js";
 if (!process.env.GMAIL_USER) console.error('❌ GMAIL_USER is not set! Forgot-password emails will fail.');
 if (!process.env.GMAIL_APP_PASSWORD) console.error('❌ GMAIL_APP_PASSWORD is not set! Forgot-password emails will fail.');
 
+// Quick startup connection test
+if (process.env.GMAIL_USER && process.env.GMAIL_APP_PASSWORD) {
+  const testTransporter = nodemailer.createTransport({
+    host: 'smtp.gmail.com',
+    port: 587,
+    secure: false,
+    auth: {
+      user: process.env.GMAIL_USER,
+      pass: process.env.GMAIL_APP_PASSWORD,
+    },
+    connectionTimeout: 5000
+  });
+  testTransporter.verify((error) => {
+    if (error) {
+      console.error('❌ Gmail Startup Test Failed:', error.message);
+    } else {
+      console.log('✅ Gmail Startup Test: Server is ready to send emails');
+    }
+  });
+}
+
 const router = express.Router();
 
 // ===== EXISTING LOGIN ROUTE =====
@@ -297,11 +318,16 @@ async function sendEmail(options) {
   }
 
   const transporter = nodemailer.createTransport({
-    service: 'gmail',
+    host: 'smtp.gmail.com',
+    port: 587,
+    secure: false, // Use STARTTLS
     auth: {
       user: gmailUser,
       pass: gmailPass, // 16-character Gmail App Password
     },
+    connectionTimeout: 10000, // 10 seconds
+    greetingTimeout: 10000,
+    socketTimeout: 10000,
   });
 
   // Verify connection configuration
