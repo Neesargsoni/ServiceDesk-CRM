@@ -4,6 +4,7 @@ import { Strategy as MicrosoftStrategy } from 'passport-microsoft';
 import { Strategy as FacebookStrategy } from 'passport-facebook';
 import { Strategy as LinkedInStrategy } from 'passport-linkedin-oauth2';
 import Customer from '../models/Customer.js';
+import mongoose from 'mongoose';
 import dotenv from 'dotenv';
 
 dotenv.config();
@@ -11,8 +12,27 @@ dotenv.config();
 // Use absolute callback URL to avoid http vs https mismatch on Render/Heroku
 const SERVER_URL = process.env.SERVER_URL || 'http://localhost:5001';
 
+// Wait for Mongoose to connect (handles Render cold starts)
+const waitForDB = () => new Promise((resolve, reject) => {
+    if (mongoose.connection.readyState === 1) return resolve();
+    let attempts = 0;
+    const interval = setInterval(() => {
+        attempts++;
+        if (mongoose.connection.readyState === 1) {
+            clearInterval(interval);
+            resolve();
+        } else if (attempts > 20) { // 10 seconds total
+            clearInterval(interval);
+            reject(new Error('Database connection timed out. Please try again.'));
+        }
+    }, 500);
+});
+
 const handleOAuthLogin = async (provider, profile, done) => {
     try {
+        // Wait for DB to be ready (handles cold starts on free hosting)
+        await waitForDB();
+
         const email = profile.emails && profile.emails[0] ? profile.emails[0].value : null;
 
         if (!email) {

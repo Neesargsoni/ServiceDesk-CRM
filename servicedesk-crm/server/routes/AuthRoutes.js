@@ -1,17 +1,17 @@
-// server/routes/AuthRoutes.js - WITH SENDGRID (No manual setup!)
+// server/routes/AuthRoutes.js - WITH NODEMAILER (Gmail SMTP)
 
 import express from "express";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import crypto from "crypto";
 import Customer from "../models/Customer.js";
-// ✅ USE SENDGRID - No more Gmail App Passwords!
-import sgMail from '@sendgrid/mail';
+import nodemailer from 'nodemailer';
 import passport from "../config/passport.js";
 import authMiddleware from "../middleware/authMiddleware.js";
 
-// Set SendGrid API Key
-sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+// Startup env-var check
+if (!process.env.GMAIL_USER) console.error('❌ GMAIL_USER is not set! Forgot-password emails will fail.');
+if (!process.env.GMAIL_APP_PASSWORD) console.error('❌ GMAIL_APP_PASSWORD is not set! Forgot-password emails will fail.');
 
 const router = express.Router();
 
@@ -155,7 +155,12 @@ router.post("/forgot-password", async (req, res) => {
         message: `Password reset email sent to ${user.email}. Please check your inbox.`,
       });
     } catch (err) {
-      console.error("Email send error:", err);
+      // Log the full SendGrid error so we can diagnose it
+      console.error("Email send error (summary):", err.message);
+      if (err.response) {
+        console.error("SendGrid error status:", err.response.status);
+        console.error("SendGrid error body:", JSON.stringify(err.response.body, null, 2));
+      }
 
       user.resetPasswordToken = undefined;
       user.resetPasswordExpire = undefined;
@@ -268,17 +273,33 @@ router.post("/reset-password", async (req, res) => {
   }
 });
 
-// ===== SENDGRID EMAIL FUNCTION =====
+// ===== NODEMAILER (GMAIL) EMAIL FUNCTION =====
 async function sendEmail(options) {
-  const msg = {
+  const gmailUser = process.env.GMAIL_USER;
+  const gmailPass = process.env.GMAIL_APP_PASSWORD;
+
+  console.log(`📧 Attempting to send email via Gmail from: ${gmailUser} to: ${options.email}`);
+
+  if (!gmailUser || !gmailPass) {
+    throw new Error('GMAIL_USER or GMAIL_APP_PASSWORD environment variable is not set.');
+  }
+
+  const transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+      user: gmailUser,
+      pass: gmailPass, // 16-character Gmail App Password (NOT your regular password)
+    },
+  });
+
+  await transporter.sendMail({
+    from: `"ServiceDesk CRM" <${gmailUser}>`,
     to: options.email,
-    from: process.env.EMAIL_FROM, // Must be verified in SendGrid
     subject: options.subject,
     html: options.message,
-  };
+  });
 
-  await sgMail.send(msg);
-  console.log(`✅ Email sent to ${options.email}`);
+  console.log(`✅ Email sent successfully to ${options.email}`);
 }
 
 // ===== OAUTH ROUTES =====
