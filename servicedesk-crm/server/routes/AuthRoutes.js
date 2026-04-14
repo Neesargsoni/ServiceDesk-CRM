@@ -144,6 +144,20 @@ router.post("/forgot-password", async (req, res) => {
     `;
 
     try {
+      // Log for debugging on Render
+      console.log(`📡 Forgot Password request for: ${email}`);
+      
+      const gmailUser = process.env.GMAIL_USER;
+      const gmailPass = process.env.GMAIL_APP_PASSWORD;
+
+      if (!gmailUser || !gmailPass) {
+        console.error("❌ ERROR: GMAIL_USER or GMAIL_APP_PASSWORD is not set in environment variables!");
+        return res.status(500).json({
+          error: "Server configuration error (Email credentials missing).",
+          details: process.env.NODE_ENV === 'development' ? "Missing GMAIL_USER/GMAIL_APP_PASSWORD" : undefined
+        });
+      }
+
       await sendEmail({
         email: user.email,
         subject: "🔐 Password Reset Request - ServiceDesk",
@@ -155,12 +169,9 @@ router.post("/forgot-password", async (req, res) => {
         message: `Password reset email sent to ${user.email}. Please check your inbox.`,
       });
     } catch (err) {
-      // Log the full SendGrid error so we can diagnose it
-      console.error("Email send error (summary):", err.message);
-      if (err.response) {
-        console.error("SendGrid error status:", err.response.status);
-        console.error("SendGrid error body:", JSON.stringify(err.response.body, null, 2));
-      }
+      // Log the full Gmail error so we can diagnose it
+      console.error("❌ Gmail Send Error:", err.message);
+      if (err.stack) console.error(err.stack);
 
       user.resetPasswordToken = undefined;
       user.resetPasswordExpire = undefined;
@@ -168,6 +179,7 @@ router.post("/forgot-password", async (req, res) => {
 
       return res.status(500).json({
         error: "Email could not be sent. Please try again later.",
+        details: process.env.NODE_ENV === 'development' ? err.message : undefined
       });
     }
   } catch (error) {
@@ -288,9 +300,18 @@ async function sendEmail(options) {
     service: 'gmail',
     auth: {
       user: gmailUser,
-      pass: gmailPass, // 16-character Gmail App Password (NOT your regular password)
+      pass: gmailPass, // 16-character Gmail App Password
     },
   });
+
+  // Verify connection configuration
+  try {
+    await transporter.verify();
+    console.log("✅ Gmail Server is ready to take our messages");
+  } catch (error) {
+    console.error("❌ Gmail Transporter Verification Failed:", error.message);
+    throw error;
+  }
 
   await transporter.sendMail({
     from: `"ServiceDesk CRM" <${gmailUser}>`,
