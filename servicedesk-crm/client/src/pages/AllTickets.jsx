@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
 import api from "../api/axios";
+import SLAIndicator from '../components/Slaindicator';
+
 
 function AllTickets() {
     const [tickets, setTickets] = useState([]);
@@ -29,7 +31,7 @@ function AllTickets() {
     };
 
     const filteredTickets = tickets.filter(ticket => {
-        const matchesSearch = 
+        const matchesSearch =
             ticket.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
             ticket.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
             ticket.user?.name?.toLowerCase().includes(searchTerm.toLowerCase());
@@ -40,12 +42,12 @@ function AllTickets() {
         if (filter === "resolved") return matchesSearch && ticket.status === "Resolved";
         if (filter === "closed") return matchesSearch && ticket.status === "Closed";
         if (filter === "unassigned") return matchesSearch && !ticket.assignedTo;
-        
+
         return matchesSearch;
     });
 
     const getPriorityColor = (priority) => {
-        switch(priority) {
+        switch (priority) {
             case "Urgent": return "bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300";
             case "High": return "bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300";
             case "Medium": return "bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300";
@@ -54,7 +56,7 @@ function AllTickets() {
     };
 
     const getStatusColor = (status) => {
-        switch(status) {
+        switch (status) {
             case "Open": return "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300";
             case "In Progress": return "bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300";
             case "Resolved": return "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300";
@@ -64,7 +66,7 @@ function AllTickets() {
     };
 
     const getSentimentEmoji = (sentiment) => {
-        switch(sentiment) {
+        switch (sentiment) {
             case "Positive": return "😊";
             case "Negative": return "😠";
             case "Urgent": return "🔥";
@@ -73,7 +75,7 @@ function AllTickets() {
     };
 
     const getCategoryColor = (category) => {
-        switch(category) {
+        switch (category) {
             case "Technical Issue": return "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200";
             case "Billing Question": return "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200";
             case "Feature Request": return "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200";
@@ -156,7 +158,7 @@ function AllTickets() {
                                             <p className="text-sm sm:text-base text-gray-600 dark:text-gray-300 mb-2 line-clamp-2 break-words">
                                                 {ticket.description}
                                             </p>
-                                            
+
                                             <div className="flex gap-1.5 sm:gap-2 flex-wrap mb-2">
                                                 {ticket.aiCategory && (
                                                     <span className={`px-2 py-0.5 sm:py-1 rounded text-xs font-medium ${getCategoryColor(ticket.aiCategory)}`}>
@@ -184,7 +186,7 @@ function AllTickets() {
                                                 )}
                                             </div>
                                         </div>
-                                        
+
                                         <div className="flex sm:flex-col gap-2 items-start sm:items-end flex-wrap sm:flex-nowrap">
                                             <span className={`px-2.5 sm:px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap ${getPriorityColor(ticket.priority)}`}>
                                                 {ticket.priority}
@@ -194,10 +196,16 @@ function AllTickets() {
                                             </span>
                                         </div>
                                     </div>
-                                    
+
                                     <div className="flex flex-col xs:flex-row xs:justify-between xs:items-center gap-2 xs:gap-0 text-xs text-gray-400 dark:text-gray-500 mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
                                         <span className="truncate">Created: {new Date(ticket.createdAt).toLocaleDateString()}</span>
                                         <span className="whitespace-nowrap">💬 {ticket.comments?.length || 0} comments</span>
+                                    </div>
+
+                                    <div className="ticket-card" key={ticket._id}>
+                                        <h3>{ticket.title}</h3>
+                                        <SLAIndicator ticket={ticket} />
+                                        {/* ... rest of your card ... */}
                                     </div>
                                 </Link>
                             ))

@@ -23,6 +23,9 @@ import mongoSanitize from "express-mongo-sanitize";
 import xss from "xss-clean";
 import hpp from "hpp";
 
+import SLA from './models/Sla.js';
+import slaMonitoringService from './utils/Slamonitoringservice.js';
+
 const app = express();
 const httpServer = createServer(app);
 
@@ -131,9 +134,21 @@ const MONGO_URI = process.env.MONGO_URI || "mongodb://127.0.0.1:27017/crm";
 console.log("🔍 Attempting to connect to MongoDB...");
 console.log("📊 MongoDB URI:", MONGO_URI.replace(/\/\/([^:]+):([^@]+)@/, '//$1:****@'));
 
+
+import slaRoutes from './routes/Slaroutes.js';
+app.use('/api', slaRoutes);
+
 mongoose.connect(MONGO_URI)
-  .then(() => {
-    console.log("✅ MongoDB connected successfully");
+  .then(async () => {
+    console.log('✅ MongoDB connected');
+
+    // Initialize default SLA policies
+    await SLA.initializeDefaults();
+
+    // Start SLA monitoring service
+    slaMonitoringService.start();
+
+
   })
   .catch((err) => {
     console.error("❌ MongoDB connection error:", err.message);
@@ -230,7 +245,7 @@ app.use((err, req, res, next) => {
 });
 
 // Start server
-const PORT = process.env.PORT || 5001;
+const PORT = process.env.PORT || 5002;
 
 httpServer.listen(PORT, () => {
   console.log("\n" + "=".repeat(50));

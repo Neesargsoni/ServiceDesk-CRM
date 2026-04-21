@@ -69,14 +69,14 @@ export default function Sidebar({ user, isOpen, setIsOpen }) {
         <>
             {/* Overlay - Mobile Only */}
             {isOpen && (
-                <div 
+                <div
                     className="fixed inset-0 bg-black/60 z-40 lg:hidden backdrop-blur-sm"
                     onClick={closeMobileMenu}
                 />
             )}
 
             {/* Sidebar */}
-            <aside 
+            <aside
                 className={`
                     mobile-sidebar
                     fixed lg:static
@@ -112,11 +112,10 @@ export default function Sidebar({ user, isOpen, setIsOpen }) {
                             <p className="text-sm font-medium text-gray-700 dark:text-gray-300 truncate">
                                 {user.name}
                             </p>
-                            <span className={`inline-block text-xs px-2.5 py-1 rounded-full mt-1.5 font-semibold ${
-                                user.role === 'admin' ? 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300' :
+                            <span className={`inline-block text-xs px-2.5 py-1 rounded-full mt-1.5 font-semibold ${user.role === 'admin' ? 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300' :
                                 user.role === 'agent' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300' :
-                                'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300'
-                            }`}>
+                                    'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300'
+                                }`}>
                                 {user.role?.toUpperCase() || 'USER'}
                             </span>
                         </div>
@@ -140,6 +139,22 @@ export default function Sidebar({ user, isOpen, setIsOpen }) {
                             <span>{item.label}</span>
                         </Link>
                     ))}
+                </nav>
+
+                <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-1">
+                    <Link
+                        to="/sla-dashboard"
+                        onClick={() => setIsOpen(false)}
+                        className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${location.pathname === '/sla-dashboard'
+                            ? 'bg-blue-600 text-white'
+                            : 'text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
+                            }`}
+                    >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <span>SLA Dashboard</span>
+                    </Link>
                 </nav>
 
                 {/* Footer */}

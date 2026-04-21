@@ -3,6 +3,10 @@ import ReactDOM from 'react-dom/client';
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import './index.css';
 
+// SLA
+import SLADashboard from './pages/Sladashboard';
+
+
 // Auth Pages
 import Login from "./pages/Login";
 import Register from "./pages/Register";
@@ -121,6 +125,16 @@ ReactDOM.createRoot(document.getElementById('root')).render(
                 element={
                   <ProtectedRoute>
                     <Analytics />
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* SLA Dashboard Route */}
+              <Route
+                path="/sla-dashboard"
+                element={
+                  <ProtectedRoute>
+                    <SLADashboard />
                   </ProtectedRoute>
                 }
               />

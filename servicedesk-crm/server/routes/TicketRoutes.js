@@ -277,6 +277,24 @@ router.put("/:id", authMiddleware, async (req, res) => {
           timestamp: new Date()
         });
       });
+
+      if ((ticket.status === 'Resolved' || ticket.status === 'Closed') && !ticket.sla?.resolvedAt) {
+        ticket.sla.resolvedAt = new Date();
+
+        // Calculate actual resolution time
+        const resolutionTime = Math.floor((new Date() - ticket.createdAt) / 60000);
+        ticket.sla.resolutionTime = resolutionTime;
+
+        // Check if SLA was met
+        if (ticket.sla.resolutionDeadline && new Date() <= new Date(ticket.sla.resolutionDeadline)) {
+          ticket.sla.status = 'Met';
+          console.log(`✅ SLA MET for ticket ${ticket._id} (${resolutionTime} minutes)`);
+        } else {
+          ticket.sla.resolutionBreached = true;
+          ticket.sla.status = 'Breached';
+          console.log(`❌ SLA BREACHED for ticket ${ticket._id} (${resolutionTime} minutes)`);
+        }
+      }
     }
 
     await ticket.save();
@@ -332,7 +350,18 @@ router.post("/:id/comment", authMiddleware, async (req, res) => {
       action: "commented",
       details: "Added a comment",
       timestamp: new Date()
+
     });
+
+    if (!ticket.sla?.firstResponseAt && req.user.role !== 'user') {
+      ticket.sla.firstResponseAt = new Date();
+
+      // Calculate actual response time
+      const responseTime = Math.floor((new Date() - ticket.createdAt) / 60000);
+      ticket.sla.responseTime = responseTime;
+
+      console.log(`✅ First response recorded for ticket ${ticket._id} (${responseTime} minutes)`);
+    }
 
     await ticket.save();
 

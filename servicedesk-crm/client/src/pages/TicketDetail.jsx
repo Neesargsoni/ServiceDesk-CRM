@@ -1,6 +1,9 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
+import SLAIndicator from '../components/Slaindicator';
+
+// Add inside your ticket detail view
 
 function TicketDetail() {
     const { id } = useParams();
@@ -248,6 +251,7 @@ function TicketDetail() {
         <div className="flex min-h-screen bg-gray-100">
             <Sidebar user={user} />
 
+
             <main className="flex-1 w-full min-w-0 p-4 sm:p-6 lg:p-8 overflow-x-hidden overflow-y-auto">
                 {/* Back Button */}
                 <button
@@ -256,6 +260,8 @@ function TicketDetail() {
                 >
                     ← Back
                 </button>
+            <SLAIndicator ticket={ticket} />
+
 
                 {/* Main Ticket Card */}
                 <div className="bg-white shadow-lg rounded-lg p-4 sm:p-6 mb-4 sm:mb-6">
@@ -379,6 +385,7 @@ function TicketDetail() {
                         </div>
                     )}
                 </div>
+
 
                 {/* 🤖 AI INSIGHTS SECTION - Responsive grid */}
                 {(ticket.aiCategory || ticket.aiSentiment || ticket.aiSuggestedPriority) && (
